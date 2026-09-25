@@ -3,6 +3,7 @@
     {
       "sweep": 1,
       "reference": "180.00",
+      "close": "181.00",
       "minted": [
         "did:key:z6MkUf3bFjg6czAxRp6xfay1NxUV7CTMmUrNUf3bFjg6czAx",
         "did:key:z6MkrBwx3NBDGJHyHjxNPFJ1Mwrhhztn4sBbrBwx3NBDGJHy",
@@ -14,7 +15,8 @@
         {
           "id": "t1",
           "outcome": "settled",
-          "fee": "36.0000"
+          "maker_fee": "36.0000",
+          "taker_fee": "36.0000"
         },
         {
           "id": "t1",
@@ -47,6 +49,7 @@
     {
       "sweep": 2,
       "reference": "181.00",
+      "close": "184.00",
       "minted": [
         "did:key:z6MkF74BfwQra9rPLvLEq26C5e5SgciJyHhvF74BfwQra9rP"
       ],
@@ -54,12 +57,14 @@
         {
           "id": "t7",
           "outcome": "settled",
-          "fee": "14.5200"
+          "maker_fee": "14.5200",
+          "taker_fee": "20.00"
         },
         {
           "id": "t8",
           "outcome": "settled",
-          "fee": "1.8100"
+          "maker_fee": "1.8100",
+          "taker_fee": "3.00"
         },
         {
           "id": "t9",
@@ -77,17 +82,20 @@
     {
       "sweep": 3,
       "reference": "179.50",
+      "close": "177.00",
       "minted": [],
       "trades": [
         {
           "id": "t11",
           "outcome": "settled",
-          "fee": "8.9500"
+          "maker_fee": "8.9500",
+          "taker_fee": "10.00"
         },
         {
           "id": "t12",
           "outcome": "settled",
-          "fee": "17.9500"
+          "maker_fee": "17.9500",
+          "taker_fee": "25.00"
         }
       ],
       "global_price": "179.33"
@@ -96,7 +104,7 @@
   "final": {
     "S": "185.00",
     "owners": 6,
-    "fees": "158.4600",
+    "fees": "173.2300",
     "zero_sum": "0.0000",
     "standings": [
       {
@@ -121,9 +129,9 @@
       },
       {
         "key": "did:key:z6Mk6zgNFxAi719LMyXWNGEDMJFJmT2561cA6zgNFxAi719L",
-        "score": "-3.620000",
+        "score": "-4.810000",
         "position": "0",
-        "fees": "3.6200",
+        "fees": "4.8100",
         "places": [
           3
         ],
@@ -131,17 +139,17 @@
       },
       {
         "key": "did:key:z6MkF74BfwQra9rPLvLEq26C5e5SgciJyHhvF74BfwQra9rP",
-        "score": "-38.950000",
+        "score": "-40.000000",
         "position": "-5",
-        "fees": "8.9500",
+        "fees": "10.00",
         "places": [],
         "sharing": 0
       },
       {
         "key": "did:key:z6MkrcKgCcUJJ9G93sQvc4JgAW1AWzhkaLZErcKgCcUJJ9G9",
-        "score": "-59.470000",
+        "score": "-72.000000",
         "position": "-2",
-        "fees": "32.4700",
+        "fees": "45.00",
         "places": [],
         "sharing": 0
       },

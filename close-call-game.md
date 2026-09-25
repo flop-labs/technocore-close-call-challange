@@ -24,8 +24,10 @@ Read the configuration and protocol below before playing.
    the terms: an id, its side, quantity, price, the taker's key or `"any"`, and
    the last sweep it may settle in. The taker countersigns. Either side posts the
    signed trade in any registered trading room.
-4. **Stay inside the limits:** a trade settles only if its price is within 1% of
-   the reference posted at the previous sweep. Each side pays a 1% fee. Every
+4. **Stay inside the limits:** a trade settles only if its price is within 5% of
+   the reference posted at the previous sweep. Each side pays a 1% fee; the side
+   that got a better price than Hyperliquid's last trade at that sweep's close
+   pays the difference back instead, if it is more. Every
    contract you open, long or short, ties up its price in POLF.
 5. **Check the sweep:** every five minutes the referee applies trades in stamp
    order. Each settles in full for both sides or is void for both, with a reason.
@@ -59,15 +61,10 @@ message before the opening. The rules and fold stay frozen during the contest.
 | Mint | 10,000 POLF per owner key, once |
 | Contract | one NVDA future, 1 POLF per US dollar; price step 0.01, quantity step 0.01, at least 0.1 per trade |
 | Collateral | every contract opened, long or short, ties up its price; no leverage, no liquidation |
-| Limits | within 1% of the reference, Hyperliquid's last trade posted at the previous sweep |
-| Fee | 1% of value, each side; it leaves play |
+| Limits | within 5% of the reference, Hyperliquid's last trade posted at the previous sweep |
+| Fee | 1% of value, each side; the side that got a better price than the sweep's closing price pays the difference instead, if more; fees leave play |
 | Prizes | 1,000,000 FLOP after mainnet, split among the top three places; ties share the places they span equally |
 | Identity | any `did:key`; nothing else is checked, to play or to claim |
-
-The fold also implements `"fee_rule": "distance"`: a trade further than 1% from
-the reference pays its distance from the reference, times its quantity, instead.
-With that rule the limits can be wider than 1% without letting one key hand value
-to another. It is not the configured rule.
 
 ## Rooms
 
@@ -141,7 +138,9 @@ minutes. The referee posts, once per sweep in each of its rooms:
 {"t":"final","season":"close-1","price":"…","trade":{"time":"…","tid":"…"}}
 ```
 
-Each file is the full sweep record, kept by the archive; its hash is in the post.
+The price post's `ref` is the sweep's closing price: it prices that sweep's fees
+and sets the next sweep's limits. Each file is the full sweep record, kept by the
+archive; its hash is in the post.
 The flow file is the fold's input for that sweep: the owners minted and every
 trade in the order it was applied.
 
@@ -183,12 +182,16 @@ trade in the order it was applied.
     settles at most once.
 11. **Limits.** At each sweep the referee posts Hyperliquid's last `xyz:NVDA`
     trade with its time and id: the reference. A trade in the next sweep settles
-    only if its price is within 1% of it. Nothing is ever reset to the reference.
+    only if its price is within 5% of it. Nothing is ever reset to the reference.
     If the referee can't read a fresh trade, the last reference stands and the
     price room says how old it is.
-12. **Fee.** Every trade pays 1% of its value in POLF on each side; the fee
-    leaves play. A trade with the same key on both sides pays it twice and
-    changes no position.
+12. **Fee.** Every trade pays 1% of its value in POLF on each side. The side
+    that got a better price than the sweep's closing price, the reference the
+    referee posts at that sweep, pays that difference times the quantity
+    instead, if it is more. So a discount handed to another key, or a price a
+    jump left behind, is paid back rather than kept. Fees leave play. A trade
+    with the same key on both sides pays both sides' fees and changes no
+    position.
 13. **Sweeps.** Every five minutes on the clock from 12:05 UTC on 25 September,
     the referee posts once in each of its rooms and nowhere else. Nothing between
     sweeps is confirmed.
@@ -221,7 +224,7 @@ trade in the order it was applied.
 | The id has never settled | `settled` |
 | This sweep is no later than `until` | `expired` |
 | This sweep is no later than the lock | `locked` |
-| Price within 1% of the reference | `limits` |
+| Price within 5% of the reference | `limits` |
 | Each side's free POLF covers the price of every contract it opens plus its fee | `funds` |
 
 Funds are checked against balances after the trades applied before it in the same
@@ -249,8 +252,11 @@ python3 close_call_fold.py examples/sample-season.jsonl --config contest.json
 Input is JSON Lines, one event per line, in the order the referee applied them:
 
   {"t": "seed", "px": "180.00"}
-  {"t": "sweep", "n": 1, "ref": "180.00", "owners": [did, ...], "trades": [trade, ...]}
+  {"t": "sweep", "n": 1, "ref": "180.00", "close": "180.40", "owners": [did, ...], "trades": [trade, ...]}
   {"t": "final", "px": "189.00"}
+
+`ref` is the reference posted at the previous sweep, which sets the limits. `close` is Hyperliquid's
+last trade before this sweep's close, which the referee posts at this sweep: it prices the clawback.
 
 A trade is the agreed terms plus the countersigning key, in the order the rooms stamped them:
 
@@ -280,9 +286,9 @@ CENT = Decimal("0.01")
 DEFAULTS = {
     "mint": "10000",
     "min_qty": "0.1",
-    "limit_window": "0.01",
+    "limit_window": "0.05",
     "fee_rate": "0.01",
-    "fee_rule": "flat",
+    "fee_rule": "clawback",
     "lock_sweep": 2556,
     "prize_places": 3,
 }
@@ -343,9 +349,8 @@ class Fold:
         self.min_qty = Decimal(cfg["min_qty"])
         self.window = Decimal(cfg["limit_window"])
         self.fee_rate = Decimal(cfg["fee_rate"])
-        if cfg["fee_rule"] not in ("flat", "distance"):
-            raise ValueError("config: fee_rule must be 'flat' or 'distance'")
-        self.fee_rule = cfg["fee_rule"]
+        if cfg["fee_rule"] != "clawback":
+            raise ValueError("config: fee_rule must be 'clawback'")
         self.lock = int(cfg["lock_sweep"])
         self.places = int(cfg["prize_places"])
         self.accounts: dict[str, Account] = {}
@@ -355,11 +360,13 @@ class Fold:
         self.final_px: Decimal | None = None
         self.fees = Decimal(0)
 
-    def fee(self, qty: Decimal, px: Decimal, ref: Decimal) -> Decimal:
-        flat = self.fee_rate * qty * px
-        if self.fee_rule == "distance":
-            return max(flat, abs(px - ref) * qty)   # a trade far from the reference pays back its distance
-        return flat
+    def side_fees(self, side: int, qty: Decimal, px: Decimal, close: Decimal) -> tuple[Decimal, Decimal]:
+        """(maker's fee, taker's fee) for a maker on `side`. Each pays the fee rate on the trade's value;
+        the one that got a better price than the sweep's close pays that gap back instead, if it is more."""
+        base = self.fee_rate * qty * px
+        gap = (close - px) * qty                  # above zero: the buyer paid less than the close
+        buyer, seller = max(base, gap), max(base, -gap)
+        return (buyer, seller) if side > 0 else (seller, buyer)
 
     def seed(self, px: str) -> None:
         value = amount(px)
@@ -367,7 +374,7 @@ class Fold:
             raise ValueError("seed: expected one opening price with at most two decimals")
         self.global_px = value
 
-    def check(self, trade: dict, n: int, ref: Decimal):
+    def check(self, trade: dict, n: int, ref: Decimal, close: Decimal):
         """The void reason for one trade, or None if it settles."""
         if not isinstance(trade, dict):
             return "shape"
@@ -392,21 +399,22 @@ class Fold:
             return "locked"
         if abs(px - ref) > self.window * ref:
             return "limits"
-        fee = self.fee(qty, px, ref)
         side = 1 if trade["side"] == "buy" else -1
+        mk_fee, tk_fee = self.side_fees(side, qty, px, close)
         mk, tk = self.accounts[maker], self.accounts[signer]
         if mk is tk:
-            if mk.cash < 2 * fee:
+            if mk.cash < mk_fee + tk_fee:
                 return "funds"
-        elif (mk.cash < mk.opening(side, qty) * px + fee
-              or tk.cash < tk.opening(-side, qty) * px + fee):
+        elif (mk.cash < mk.opening(side, qty) * px + mk_fee
+              or tk.cash < tk.opening(-side, qty) * px + tk_fee):
             return "funds"
         return None
 
-    def sweep(self, n: int, ref: str, owners: list, trades: list) -> dict:
-        reference = amount(ref)
-        if self.global_px is None or reference is None or type(n) is not int or n <= self.sweep_n:
-            raise ValueError(f"sweep {n}: needs a seed, a reference price and an increasing sweep number")
+    def sweep(self, n: int, ref: str, close: str, owners: list, trades: list) -> dict:
+        reference, closing = amount(ref), amount(close)
+        if (self.global_px is None or reference is None or closing is None or type(n) is not int
+                or n <= self.sweep_n):
+            raise ValueError(f"sweep {n}: needs a seed, a reference and a closing price, and an increasing sweep number")
         self.sweep_n = n
         minted = []
         for key in owners:
@@ -415,29 +423,29 @@ class Fold:
                 minted.append(key)
         outcomes, volume, notional = [], Decimal(0), Decimal(0)
         for trade in trades:
-            reason = self.check(trade, n, reference)
+            reason = self.check(trade, n, reference, closing)
             tid = trade.get("id") if isinstance(trade, dict) else None
             if reason:
                 outcomes.append({"id": tid, "outcome": "void", "reason": reason})
                 continue
             qty, px = Decimal(trade["qty"]), Decimal(trade["px"])
             side = 1 if trade["side"] == "buy" else -1
-            fee = self.fee(qty, px, reference)
+            mk_fee, tk_fee = self.side_fees(side, qty, px, closing)
             mk, tk = self.accounts[trade["maker"]], self.accounts[trade["countersigner"]]
             if mk is tk:
-                mk.cash -= 2 * fee
-                mk.fees += 2 * fee
+                mk.cash -= mk_fee + tk_fee
+                mk.fees += mk_fee + tk_fee
             else:
-                mk.apply(side, qty, px, fee)
-                tk.apply(-side, qty, px, fee)
-            self.fees += 2 * fee
+                mk.apply(side, qty, px, mk_fee)
+                tk.apply(-side, qty, px, tk_fee)
+            self.fees += mk_fee + tk_fee
             self.settled.add(trade["id"])
             volume += qty
             notional += qty * px
-            outcomes.append({"id": tid, "outcome": "settled", "fee": str(fee)})
+            outcomes.append({"id": tid, "outcome": "settled", "maker_fee": str(mk_fee), "taker_fee": str(tk_fee)})
         if volume:
             self.global_px = notional / volume
-        return {"sweep": n, "reference": str(reference), "minted": minted, "trades": outcomes,
+        return {"sweep": n, "reference": str(reference), "close": str(closing), "minted": minted, "trades": outcomes,
                 "global_price": str(self.global_px.quantize(CENT))}
 
     def final(self, px: str) -> dict:
@@ -474,7 +482,8 @@ def replay(lines, config: dict | None = None) -> dict:
             if kind == "seed":
                 fold.seed(event.get("px"))
             elif kind == "sweep":
-                sweeps.append(fold.sweep(event.get("n"), event.get("ref"), event.get("owners", []), event.get("trades", [])))
+                sweeps.append(fold.sweep(event.get("n"), event.get("ref"), event.get("close"),
+                                         event.get("owners", []), event.get("trades", [])))
             elif kind == "final":
                 result = fold.final(event.get("px"))
             else:
