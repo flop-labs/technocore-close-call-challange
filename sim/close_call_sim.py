@@ -94,7 +94,7 @@ DEFAULT = "hl"   # proposed rule: limit up/down around Hyperliquid's last price;
 
 
 def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, band_w=0.02, max_move=None,
-        guard=None, prorata=False, room_price=False, protect=False, limit=None, dev_fee=True):
+        guard=None, prorata=False, room_price=False, protect=False, limit=None, dev_fee=True, fee_mode=None):
     global FEE, BAND
     FEE, BAND = fee, band_w
     edge = fee + 0.002          # trackers need the fee plus a margin
@@ -128,6 +128,22 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
     track_err, dev = [], []
 
     band = [0.0, 0.0]          # this sweep's band in whole cents, inclusive
+    mode = fee_mode or ("max" if dev_fee else "flat")
+
+    def fee_rate(px, ref_px):
+        """Fee as a share of the trade's value. The distance is the absolute price gap to the reference,
+        so a trade far below it pays back the whole discount, not a share of its own small value."""
+        dist = abs(px - ref_px) / px
+        if mode == "max":
+            return max(FEE, dist)
+        if mode == "plus":
+            return FEE + dist
+        if mode.startswith("beyond:"):
+            return FEE if abs(px / ref_px - 1) <= float(mode.split(":")[1]) else dist
+        return None
+
+    captured = {}              # value each gaming key captured against Hyperliquid's price at the time
+    settled_per_sweep = []
 
     def cents(px):
         return min(max(round(px, 2), band[0]), band[1])
@@ -307,6 +323,24 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                         direct(trades, k, group[x], group[y], 1, q, px)
                         bracket["pairs"].append((x, y, q))
                 bracket["open_px"] = px
+        if name == "absurd" and k == sc.get("start", 12):
+            main, feeders = group[0], group[1:]
+            px = band[0]                    # the lowest price the limits allow
+            fee_px = (fee_rate(px, hp) or FEE) * px
+            for fdr in feeders:             # each free key sells the favoured key as much as both can fund
+                q = r2(0.95 * min(fdr.R, main.R / len(feeders)) / (px + fee_px))
+                direct(trades, k, fdr, main, -1, q, px, raw=True)
+        if name == "sniper":
+            now = float(h[k])               # the sniper sees Hyperliquid's price before the sweep closes
+            sn = group[0]
+            for book, side in ((asks, 1), (bids, -1)):
+                for o in book:
+                    if o["maker"].group != "honest":
+                        continue
+                    cost = (fee_rate(o["px"], hp) or FEE) + 0.001
+                    gain = side * (now - o["px"]) / o["px"]
+                    if gain > cost and abs(sn.q + side * o["qty"]) <= 50:
+                        take(sn, o)
         if name == "harvest" and k >= sc.get("start", 12):
             main, feeders = group[0], group[1:]
             i = (k // 2) % (len(feeders) // 2)      # one pair of free keys for two sweeps, so their positions net out
@@ -392,7 +426,7 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                 continue
             if pos_cap and (abs(mk.q + o["side"] * o["qty"]) > pos_cap + EPS or abs(taker.q - o["side"] * o["qty"]) > pos_cap + EPS):
                 stats["void_cap"] += 1; continue
-            fr = max(FEE, abs(o["px"] / hp - 1)) if dev_fee else None   # a trade far from Hyperliquid pays its distance
+            fr = fee_rate(o["px"], hp)
             if mk.R + EPS < mk.need(o["side"], o["qty"], o["px"], fr) or taker.R + EPS < taker.need(-o["side"], o["qty"], o["px"], fr):
                 stats["void_funds"] += 1
                 if taker.group == "honest":
@@ -400,6 +434,9 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                 continue
             mk.apply(o["side"], o["qty"], o["px"], fr)
             taker.apply(-o["side"], o["qty"], o["px"], fr)
+            for acc, sd in ((mk, o["side"]), (taker, -o["side"])):
+                if acc.group != "honest":
+                    captured[acc.id] = captured.get(acc.id, 0.0) + sd * o["qty"] * (float(h[k]) - o["px"]) - (FEE if fr is None else fr) * o["qty"] * o["px"]
             settled_ids.add(o["id"])
             stats["settled"] += 1
             stats["volume"] += o["qty"]
@@ -412,6 +449,7 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
           if final_pass or not deferred:
               break
           queue, deferred, final_pass = deferred, [], True
+        settled_per_sweep.append(stats["settled"])
         if room_price and avol > 0:
             PA = anot / avol
         if variant in ("vwap", "hl"):
@@ -444,6 +482,8 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
     for a in accts:
         kinds.setdefault(a.kind, []).append(finals[a.id])
     top_kinds = [a.kind for a in ranked[:3]]
+    per = np.diff([0] + settled_per_sweep)
+    post_jump = [int(per[j:j + 12].sum()) for j in jumps]
     lag = []
     for j in jumps:
         m = next((i for i in range(j, min(SWEEPS, j + 300)) if abs(dev[i]) < 0.012), None)
@@ -454,12 +494,14 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                jump_lag=lag, kinds={k: dict(mean=float(np.mean(v)), n=len(v)) for k, v in kinds.items()},
                scores={k: [round(x, 1) for x in v] for k, v in kinds.items()},
                top_kinds=top_kinds, top_scores=[round(finals[a.id], 1) for a in ranked[:3]],
-               prize=prize, honest_void_funds=honest_void_funds)
+               prize=prize, honest_void_funds=honest_void_funds, post_jump_trades=post_jump)
     if group:
         out["group_score"] = sum(finals[a.id] for a in group)
         out["group_best"] = max(finals[a.id] for a in group)
         out["group_fees"] = sum(a.fees for a in group)
         out["main_score"] = finals[group[0].id]
+        out["main_edge"] = captured.get(group[0].id, 0.0)
+        out["group_edge"] = sum(captured.values())
         if sc["name"] in ("funnel", "walkfunnel"):
             main = group[0]
             h_avg = float(np.mean(funnel_h)) if funnel_h else SEED
