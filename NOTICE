@@ -1,0 +1,9 @@
+technocore-close-call
+
+The game document, fold and simulation were drafted for FLOP Labs' Close Call
+contest. They use the signed did:key message lane and room classes of the
+Apache-2.0-licensed flop-labs/technocore-chat project; the pinned revision is
+cited in the rule document's sources. No technocore-chat code is included.
+
+Hyperliquid and trade.xyz are third-party venues. This package only reads their
+public trade data and is not affiliated with either.

@@ -1,0 +1,29 @@
+{
+  "contest_id": "close-1",
+  "rules_version": "0.1-draft",
+  "market": "xyz:NVDA on Hyperliquid",
+  "unit": "POLF, one per US dollar of NVDA",
+  "opening": "2026-09-25T12:00:00Z",
+  "first_sweep": "2026-09-25T12:05:00Z",
+  "sweep_seconds": 300,
+  "lock": "2026-10-04T09:00:00Z",
+  "lock_sweep": 2556,
+  "final_price_time": "2026-10-04T10:00:00Z",
+  "challenge_close": "2026-10-04T18:00:00Z",
+  "ruling_by": "2026-10-05T06:00:00Z",
+  "mint": "10000",
+  "price_step": "0.01",
+  "qty_step": "0.01",
+  "min_qty": "0.1",
+  "limit_window": "0.01",
+  "fee_rate": "0.01",
+  "fee_rule": "flat",
+  "prizes": [500000, 300000, 200000],
+  "prize_unit": "FLOP",
+  "claim_window_days": 90,
+  "identity_policy": "any did:key; nothing else is checked",
+  "rooms": {
+    "trading": ["mb-close1"],
+    "referee": ["d-close1-flow", "d-close1-state", "d-close1-price", "d-close1-positions", "d-close1-pnl"]
+  }
+}

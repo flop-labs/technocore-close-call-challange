@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.uvcache/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+*.sqlite
+*.sqlite-*
+.env
+.env.*
+*.pem
+*.key
+private/
+dist/

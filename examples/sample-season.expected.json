@@ -1,0 +1,146 @@
+{
+  "sweeps": [
+    {
+      "sweep": 1,
+      "reference": "180.00",
+      "minted": [
+        "did:key:z6MkUf3bFjg6czAxRp6xfay1NxUV7CTMmUrNUf3bFjg6czAx",
+        "did:key:z6MkrBwx3NBDGJHyHjxNPFJ1Mwrhhztn4sBbrBwx3NBDGJHy",
+        "did:key:z6MkrcKgCcUJJ9G93sQvc4JgAW1AWzhkaLZErcKgCcUJJ9G9",
+        "did:key:z6Mk6zgNFxAi719LMyXWNGEDMJFJmT2561cA6zgNFxAi719L",
+        "did:key:z6MkvENmGn6G3qgJCq7GGaXnkimub8BdKt5XvENmGn6G3qgJ"
+      ],
+      "trades": [
+        {
+          "id": "t1",
+          "outcome": "settled",
+          "fee": "36.0000"
+        },
+        {
+          "id": "t1",
+          "outcome": "void",
+          "reason": "settled"
+        },
+        {
+          "id": "t3",
+          "outcome": "void",
+          "reason": "limits"
+        },
+        {
+          "id": "t4",
+          "outcome": "void",
+          "reason": "funds"
+        },
+        {
+          "id": "t5",
+          "outcome": "void",
+          "reason": "taker"
+        },
+        {
+          "id": "t6",
+          "outcome": "void",
+          "reason": "not_owner"
+        }
+      ],
+      "global_price": "180.00"
+    },
+    {
+      "sweep": 2,
+      "reference": "181.00",
+      "minted": [
+        "did:key:z6MkF74BfwQra9rPLvLEq26C5e5SgciJyHhvF74BfwQra9rP"
+      ],
+      "trades": [
+        {
+          "id": "t7",
+          "outcome": "settled",
+          "fee": "14.5200"
+        },
+        {
+          "id": "t8",
+          "outcome": "settled",
+          "fee": "1.8100"
+        },
+        {
+          "id": "t9",
+          "outcome": "void",
+          "reason": "expired"
+        },
+        {
+          "id": "t10",
+          "outcome": "void",
+          "reason": "shape"
+        }
+      ],
+      "global_price": "181.44"
+    },
+    {
+      "sweep": 3,
+      "reference": "179.50",
+      "minted": [],
+      "trades": [
+        {
+          "id": "t11",
+          "outcome": "settled",
+          "fee": "8.9500"
+        },
+        {
+          "id": "t12",
+          "outcome": "settled",
+          "fee": "17.9500"
+        }
+      ],
+      "global_price": "179.33"
+    }
+  ],
+  "final": {
+    "S": "185.00",
+    "owners": 6,
+    "fees": "158.4600",
+    "zero_sum": "0.0000",
+    "standings": [
+      {
+        "key": "did:key:z6MkvENmGn6G3qgJCq7GGaXnkimub8BdKt5XvENmGn6G3qgJ",
+        "score": "37.050000",
+        "position": "10",
+        "fees": "17.9500",
+        "prize": "500000.00"
+      },
+      {
+        "key": "did:key:z6MkrBwx3NBDGJHyHjxNPFJ1Mwrhhztn4sBbrBwx3NBDGJHy",
+        "score": "21.480000",
+        "position": "12",
+        "fees": "50.5200",
+        "prize": "300000.00"
+      },
+      {
+        "key": "did:key:z6Mk6zgNFxAi719LMyXWNGEDMJFJmT2561cA6zgNFxAi719L",
+        "score": "-3.620000",
+        "position": "0",
+        "fees": "3.6200",
+        "prize": "200000.00"
+      },
+      {
+        "key": "did:key:z6MkF74BfwQra9rPLvLEq26C5e5SgciJyHhvF74BfwQra9rP",
+        "score": "-38.950000",
+        "position": "-5",
+        "fees": "8.9500",
+        "prize": "0"
+      },
+      {
+        "key": "did:key:z6MkrcKgCcUJJ9G93sQvc4JgAW1AWzhkaLZErcKgCcUJJ9G9",
+        "score": "-59.470000",
+        "position": "-2",
+        "fees": "32.4700",
+        "prize": "0"
+      },
+      {
+        "key": "did:key:z6MkUf3bFjg6czAxRp6xfay1NxUV7CTMmUrNUf3bFjg6czAx",
+        "score": "-114.950000",
+        "position": "-15",
+        "fees": "44.9500",
+        "prize": "0"
+      }
+    ]
+  }
+}

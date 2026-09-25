@@ -1,0 +1,85 @@
+{
+  "entrypoint": "close-call-game.md",
+  "files": {
+    ".gitattributes": {
+      "bytes": 38,
+      "sha256": "25f4130bd4d8dfac7d481bc5d55123f1e68a2e443305778950d2c09820dfe92d",
+      "url": ".gitattributes"
+    },
+    ".gitignore": {
+      "bytes": 137,
+      "sha256": "54559535c9a154cc576b6fa57dbd8c1e4de8d8c02146ac0b2a13bb3c4702781a",
+      "url": ".gitignore"
+    },
+    "AGENTS.md": {
+      "bytes": 1146,
+      "sha256": "0811f215f10529ea1c513b6e57246c02c09b9064f6da180e7991ce7fb6df76c6",
+      "url": "AGENTS.md"
+    },
+    "LICENSE": {
+      "bytes": 11340,
+      "sha256": "9a199b2f98908456e0714c49a9d0ae7b01d43eb85c0005a040a974db5faa982a",
+      "url": "LICENSE"
+    },
+    "NOTICE": {
+      "bytes": 462,
+      "sha256": "59c76dd28996dbebb79504d77332d12c468eaa4fe0c4e6babc29e8c4197d4563",
+      "url": "NOTICE"
+    },
+    "README.md": {
+      "bytes": 3421,
+      "sha256": "b4fd6d6baca912b003950a8cb5b7071e6d45d0b6b1b35549682009d95c10df84",
+      "url": "README.md"
+    },
+    "close-call-game.md": {
+      "bytes": 25155,
+      "sha256": "59e2fae3d7b04495932e1c9a94e7d0db3430d907118e67f55f7371e713db7d6c",
+      "url": "close-call-game.md"
+    },
+    "close_call_fold.py": {
+      "bytes": 10910,
+      "sha256": "19dd57053b76a824f7f3e51fa48689eca8eaef5223e0d134ae392b7b2b00fd5e",
+      "url": "close_call_fold.py"
+    },
+    "contest.json": {
+      "bytes": 894,
+      "sha256": "7dd9baa5c19682fcbc4fd91f34df48d0766261e67b469a860dc8574d1c12dcaf",
+      "url": "contest.json"
+    },
+    "examples/sample-season.expected.json": {
+      "bytes": 3402,
+      "sha256": "5e9f41ce5479a3e335778c5f45f557648d4f1f7c7ee856ab8eabe11ea699fe93",
+      "url": "examples/sample-season.expected.json"
+    },
+    "examples/sample-season.jsonl": {
+      "bytes": 3337,
+      "sha256": "b6a9fa2082e79da7a8624c93823b4bd23152f547a5d05d8ad805aed7b051f6e6",
+      "url": "examples/sample-season.jsonl"
+    },
+    "scripts/build.py": {
+      "bytes": 3931,
+      "sha256": "03cf6262a89288d022450719b8f62d6281d042663d517a54098cfeba031c1b08",
+      "url": "scripts/build.py"
+    },
+    "scripts/verify.py": {
+      "bytes": 2523,
+      "sha256": "022d490a2a9c6a12f9a36eca5f014ad7475b3d291e12e58eb45da88ab937387e",
+      "url": "scripts/verify.py"
+    },
+    "tests/test_fold.py": {
+      "bytes": 5344,
+      "sha256": "f50613db7f8dc4a0332808645c18f8371895ee2e277af25149653f4bd19e77e6",
+      "url": "tests/test_fold.py"
+    },
+    "tests/test_package.py": {
+      "bytes": 2443,
+      "sha256": "f605179aaca540771962c506624b7e161e8be5bf69bedb0d0770fc56794e6121",
+      "url": "tests/test_package.py"
+    }
+  },
+  "package": "technocore-close-call",
+  "schema_version": 1,
+  "status": "draft",
+  "url_resolution": "Artifact URLs are relative to this manifest's URL.",
+  "version": "0.1.0-draft"
+}
