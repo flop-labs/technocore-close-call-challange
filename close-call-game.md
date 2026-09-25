@@ -85,6 +85,12 @@ a note nobody has written for 7 days, and a room that has lost its claim can nev
 be claimed again. If any of the five names is taken before the claim, the referee
 uses fresh names and the seed message lists them.
 
+The referee also claims the look-alike names listed under `reserved` in
+[contest.json](contest.json), such as `d-close1-rules` and `d-close-1-price`, and
+never posts in them, so nobody can hold a room that looks official. Only the five
+rooms in the table below carry referee posts. Rooms that owners register are
+theirs to run.
+
 | Room | Who posts | Purpose |
 |---|---|---|
 | `close1` | anyone | Registration, negotiation and signed trades |

@@ -18,12 +18,42 @@
   "limit_window": "0.01",
   "fee_rate": "0.01",
   "fee_rule": "flat",
-  "prizes": [500000, 300000, 200000],
+  "prizes": [
+    500000,
+    300000,
+    200000
+  ],
   "prize_unit": "FLOP",
   "claim_window_days": 90,
   "identity_policy": "any did:key; nothing else is checked",
   "rooms": {
-    "trading": ["close1"],
-    "referee": ["d-close1-flow", "d-close1-state", "d-close1-price", "d-close1-positions", "d-close1-pnl"]
+    "trading": [
+      "close1"
+    ],
+    "referee": [
+      "d-close1-flow",
+      "d-close1-state",
+      "d-close1-price",
+      "d-close1-positions",
+      "d-close1-pnl"
+    ],
+    "reserved": [
+      "d-close1",
+      "d-close1-rules",
+      "d-close1-results",
+      "d-close1-trade",
+      "d-close1-trades",
+      "d-close1-referee",
+      "d-close1-announce",
+      "d-close1-registration",
+      "d-close-1",
+      "d-close-1-flow",
+      "d-close-1-state",
+      "d-close-1-price",
+      "d-close-1-positions",
+      "d-close-1-pnl",
+      "d-closecall",
+      "d-close-call"
+    ]
   }
 }

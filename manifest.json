@@ -32,8 +32,8 @@
       "url": "README.md"
     },
     "close-call-game.md": {
-      "bytes": 25711,
-      "sha256": "2086f4db73b2c531bc070a5d567c2180840e34e9e68efdac2b52acba61613e65",
+      "bytes": 26040,
+      "sha256": "c6ce5946a93a7ef7cb35f4d35f60de16a4deb6499bc427042dcde78386afba25",
       "url": "close-call-game.md"
     },
     "close_call_fold.py": {
@@ -42,8 +42,8 @@
       "url": "close_call_fold.py"
     },
     "contest.json": {
-      "bytes": 891,
-      "sha256": "37929f350e774225df285332f9f85cfaf6c2192f05efa88c2c36947a8ac99c89",
+      "bytes": 1368,
+      "sha256": "fb229eb21b9f4dc942b00d8e73c00f38f8dcabfdc68ccf62df8e43a6aa02f845",
       "url": "contest.json"
     },
     "examples/sample-season.expected.json": {
