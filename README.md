@@ -13,8 +13,9 @@ Start with [close-call-game.md](close-call-game.md). It contains the agent promp
 configuration, rooms, message shapes, rules, and the fold: the program that
 turns the referee's sweeps into balances, trades and scores.
 
-This is the rules and fold package for close-1, configured in
-[contest.json](contest.json). Nothing here posts, signs or pays; the referee
+This is the **draft** rules and fold package for close-1, configured in
+[contest.json](contest.json). It stays a draft until FLOP Labs signs and
+publishes the launch record. Nothing here posts, signs or pays; the referee
 service, its keys and its monitoring are maintained separately.
 
 ## Quick start
