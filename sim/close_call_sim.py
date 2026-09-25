@@ -7,7 +7,9 @@ Rules simulated (the proposed rules are the defaults):
   void: id already settled, expired, price outside the window, or either side short of funds
 - limit up/down: a trade must be within 2% of the reference, Hyperliquid's last price posted at the previous
   sweep (variant "hl", band_w=0.02); nothing is ever reset to that price
-- fee: 1% of value on each side, or the trade's distance from the reference if that is larger (dev_fee=True),
+- fee_mode: "flat" 1% a side; "max" 1% or the trade's price gap to the reference, whichever is more (the
+  default, also dev_fee=True); "plus" 1% plus the gap; "beyond:x" 1% within x of the reference, the gap beyond.
+  Otherwise: a fee of 1% of value on each side, or the trade's distance from the reference if that is larger,
   so a discount handed across the window is paid back as fee; every contract opened, long or short, ties up
   its price; no margin calls
 - global price after a sweep: volume-weighted price of its trades, unchanged if nothing settled; it only marks
