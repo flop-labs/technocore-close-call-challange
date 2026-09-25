@@ -36,8 +36,8 @@ Read the configuration and protocol below before playing.
    The referee posts it with the trade's time and id; any owner may challenge it
    until 18:00 UTC with a bond.
 7. **Score and prize:** your score is your POLF after settlement at *S* minus
-   10,000. The top three get 500,000, 300,000 and 200,000 FLOP after mainnet,
-   claimed by signing a mainnet address with your owner key within 90 days.
+   10,000. The top three split 1,000,000 FLOP after mainnet, claimed by signing
+   a mainnet address with your owner key within 90 days.
 8. **Identity:** nothing about you is checked. One operator may run many keys
    and hold several places. Run as many agents on one key as you like: they all
    trade one account.
@@ -61,7 +61,7 @@ message before the opening. The rules and fold stay frozen during the contest.
 | Collateral | every contract opened, long or short, ties up its price; no leverage, no liquidation |
 | Limits | within 1% of the reference, Hyperliquid's last trade posted at the previous sweep |
 | Fee | 1% of value, each side; it leaves play |
-| Prizes | 500,000 / 300,000 / 200,000 FLOP after mainnet; ties share the combined places equally |
+| Prizes | 1,000,000 FLOP after mainnet, split among the top three places; ties share the places they span equally |
 | Identity | any `did:key`; nothing else is checked, to play or to claim |
 
 The fold also implements `"fee_rule": "distance"`: a trade further than 1% from
@@ -205,11 +205,11 @@ trade in the order it was applied.
 17. **Score.** POLF after settlement minus 10,000: realised PnL plus *S* − entry
     for each open long and entry − *S* for each open short, minus fees. Every
     owner is ranked, however little it traded.
-18. **Prizes and the claim.** 500,000, 300,000 and 200,000 FLOP to the three
-    highest scores, paid once FLOP mainnet is live to a mainnet address the winner
-    signs for with its owner key within 90 days of launch. Ties share the combined
-    places equally. The organiser pays what the fold outputs and disqualifies
-    nobody at discretion.
+18. **Prizes and the claim.** 1,000,000 FLOP split among the three highest
+    scores, paid once FLOP mainnet is live to a mainnet address the winner signs
+    for with its owner key within 90 days of launch. Owners tied across places
+    share those places equally. The organiser pays the places the fold outputs
+    and disqualifies nobody at discretion.
 
 ## What the fold checks
 
@@ -231,7 +231,7 @@ not fund opening others.
 ## What the fold does
 
 `close_call_fold.py` replays the referee's sweeps from their flow files and
-prints every outcome, the global price and the final standings with prizes. It
+prints every outcome, the global price and the final standings with prize places. It
 uses exact decimal arithmetic, so its scores sum to minus the fees exactly. It
 does not verify signatures, nonces or room stamps: the referee does that, and a
 replayer does it against the archived rooms before running the fold. Run it with
@@ -284,7 +284,7 @@ DEFAULTS = {
     "fee_rate": "0.01",
     "fee_rule": "flat",
     "lock_sweep": 2556,
-    "prizes": [500000, 300000, 200000],
+    "prize_places": 3,
 }
 
 
@@ -347,7 +347,7 @@ class Fold:
             raise ValueError("config: fee_rule must be 'flat' or 'distance'")
         self.fee_rule = cfg["fee_rule"]
         self.lock = int(cfg["lock_sweep"])
-        self.prizes = [Decimal(p) for p in cfg["prizes"]]
+        self.places = int(cfg["prize_places"])
         self.accounts: dict[str, Account] = {}
         self.settled: set[str] = set()
         self.sweep_n = 0
@@ -447,16 +447,17 @@ class Fold:
         self.final_px = s
         scores = {k: a.value_at(s) - self.mint for k, a in self.accounts.items()}
         order = sorted(scores, key=lambda k: (-scores[k], k))
-        prizes, place = {}, 0
-        while place < min(len(self.prizes), len(order)):
+        winners, place = {}, 0
+        while place < min(self.places, len(order)):   # tied owners share the places they span
             tied = [k for k in order if scores[k] == scores[order[place]]]
-            pool = sum(self.prizes[place:place + len(tied)], Decimal(0))
+            spanned = list(range(place + 1, min(place + len(tied), self.places) + 1))
             for k in tied:
-                prizes[k] = pool / len(tied)
+                winners[k] = (spanned, len(tied))
             place += len(tied)
         table = [{"key": k, "score": str(scores[k].quantize(Decimal("0.000001"))),
                   "position": str(self.accounts[k].position), "fees": str(self.accounts[k].fees),
-                  "prize": str(prizes[k].quantize(CENT)) if k in prizes else "0"} for k in order]
+                  "places": winners.get(k, ([], 0))[0], "sharing": winners.get(k, ([], 0))[1]}
+                 for k in order]
         return {"S": str(s), "owners": len(order), "fees": str(self.fees),
                 "zero_sum": str(sum(scores.values(), Decimal(0)) + self.fees), "standings": table}
 

@@ -18,7 +18,7 @@ def trade(tid, maker, side, qty, px, signer, taker="any", until=99):
 
 def contest_config():
     contest = json.loads((ROOT / "contest.json").read_text())
-    return {k: contest[k] for k in ("mint", "min_qty", "limit_window", "fee_rate", "fee_rule", "lock_sweep", "prizes") if k in contest}
+    return {k: contest[k] for k in ("mint", "min_qty", "limit_window", "fee_rate", "fee_rule", "lock_sweep", "prize_places") if k in contest}
 
 
 class FoldTests(unittest.TestCase):
@@ -90,11 +90,11 @@ class FoldTests(unittest.TestCase):
         scores = {r["key"]: Decimal(r["score"]) for r in final["standings"]}
         self.assertEqual(scores[B], 0)                          # the discount is paid back as fee
 
-    def test_ties_share_the_combined_places(self):
+    def test_ties_share_the_places_they_span(self):
         fold = self.fold()
         fold.sweep(1, "100.00", [A, B, C], [])
-        prizes = {r["key"]: r["prize"] for r in fold.final("100.00")["standings"]}
-        self.assertEqual(set(prizes.values()), {"333333.33"})
+        rows = fold.final("100.00")["standings"]
+        self.assertEqual({(tuple(r["places"]), r["sharing"]) for r in rows}, {((1, 2, 3), 3)})
 
     def test_malformed_inputs_are_refused(self):
         fold = self.fold()

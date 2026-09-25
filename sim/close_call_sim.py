@@ -15,7 +15,8 @@ Rules simulated (the proposed rules are the defaults):
 - global price after a sweep: volume-weighted price of its trades, unchanged if nothing settled; it only marks
   the live board
 - score: POLF after settlement at S (Hyperliquid, one hour after the lock) minus 10,000
-- prizes 500k / 300k / 200k FLOP to the three highest scores; no liveness rule
+- 1,000,000 FLOP split among the three highest scores; no liveness rule. The suite counts prize
+  places won, not FLOP, since the split between places is not part of the rules
 
 Alternatives the suite compares:
 - variant "vwap": the band is measured from our own last global price instead (band_w, flat fee)
@@ -36,7 +37,7 @@ import numpy as np
 
 SWEEPS, AFTER = 2556, 12                  # 12:05 Fri 25 Sep .. 09:00 Sun 4 Oct; S at 10:00
 MINT, FEE, BAND, SEED = 10_000.0, 0.01, 0.01, 180.0
-PRIZES = (500_000, 300_000, 200_000)
+PLACES = 3
 EPS = 1e-9
 
 
@@ -478,8 +479,8 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
     zero_sum_gap = sum(finals.values()) + fees
     ranked = sorted(accts, key=lambda a: -finals[a.id])
     prize = {}
-    for place, a in enumerate(ranked[:3]):
-        prize[a.group] = prize.get(a.group, 0) + PRIZES[place]
+    for a in ranked[:PLACES]:
+        prize[a.group] = prize.get(a.group, 0) + 1
     kinds = {}
     for a in accts:
         kinds.setdefault(a.kind, []).append(finals[a.id])

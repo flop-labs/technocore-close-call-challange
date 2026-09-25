@@ -18,11 +18,8 @@
   "limit_window": "0.01",
   "fee_rate": "0.01",
   "fee_rule": "flat",
-  "prizes": [
-    500000,
-    300000,
-    200000
-  ],
+  "prize_pool": "1000000",
+  "prize_places": 3,
   "prize_unit": "FLOP",
   "claim_window_days": 90,
   "identity_policy": "any did:key; nothing else is checked",

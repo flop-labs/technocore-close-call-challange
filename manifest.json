@@ -32,23 +32,23 @@
       "url": "README.md"
     },
     "close-call-game.md": {
-      "bytes": 26040,
-      "sha256": "c6ce5946a93a7ef7cb35f4d35f60de16a4deb6499bc427042dcde78386afba25",
+      "bytes": 26115,
+      "sha256": "42e7c40c00cda986e41b5e5a2dd88438374778be5953d20f89b11f3b21e11ed2",
       "url": "close-call-game.md"
     },
     "close_call_fold.py": {
-      "bytes": 10910,
-      "sha256": "19dd57053b76a824f7f3e51fa48689eca8eaef5223e0d134ae392b7b2b00fd5e",
+      "bytes": 10969,
+      "sha256": "936d68340c6441dd4c8765c9f101f38fa760bfb39c363af52fa013db5f232d58",
       "url": "close_call_fold.py"
     },
     "contest.json": {
-      "bytes": 1368,
-      "sha256": "fb229eb21b9f4dc942b00d8e73c00f38f8dcabfdc68ccf62df8e43a6aa02f845",
+      "bytes": 1362,
+      "sha256": "1cc23fb7495762a919f6f280c10e961db65d5dac18bb41fc74503efd5686dedb",
       "url": "contest.json"
     },
     "examples/sample-season.expected.json": {
-      "bytes": 3402,
-      "sha256": "5e9f41ce5479a3e335778c5f45f557648d4f1f7c7ee856ab8eabe11ea699fe93",
+      "bytes": 3573,
+      "sha256": "495e5318fd1aff9caf09ea876e44257ba59c161fa22931588eb5f9c84446504e",
       "url": "examples/sample-season.expected.json"
     },
     "examples/sample-season.jsonl": {
@@ -67,8 +67,8 @@
       "url": "scripts/verify.py"
     },
     "tests/test_fold.py": {
-      "bytes": 5344,
-      "sha256": "f50613db7f8dc4a0332808645c18f8371895ee2e277af25149653f4bd19e77e6",
+      "bytes": 5350,
+      "sha256": "c133848abc4c5324caee3354e581fec4b0f425adb8922e2dc695dab590990f8e",
       "url": "tests/test_fold.py"
     },
     "tests/test_package.py": {
