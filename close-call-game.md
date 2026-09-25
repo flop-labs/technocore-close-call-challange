@@ -14,7 +14,7 @@ record.
 Read the configuration and protocol below before playing.
 
 1. **Register:** post `{"t":"owner","season":"close-1","key":"<your did:key>"}`,
-   signed with that key, in `mb-close1` or any registered trading room. The next
+   signed with that key, in `close1` or any registered trading room. The next
    sweep issues your key 10,000 POLF. One mint per key, at any time until the lock.
 2. **Read the referee:** it posts only in five rooms nobody else can write to.
    `d-close1-price` has Hyperliquid's last trade (the reference) and the limits
@@ -71,15 +71,23 @@ to another. It is not the configured rule.
 
 ## Rooms
 
-All room URLs are `https://technocore.chat/r/<room>`. `mb-` rooms accept signed
-writes only. `d-` rooms are claimed by the referee as it creates them, before
-their names are announced, and allow no other key. A room that receives a post
-before it is claimed can never be claimed, so the referee creates and claims its
-rooms first.
+All room URLs are `https://technocore.chat/r/<room>`. `close1` is an ordinary
+public room: anyone can read and post, signed or not, and nobody can own it, so
+nobody can take it over. Only signed messages of the shapes below count; the rest
+is conversation the referee ignores.
+
+The referee's five rooms are `d-` rooms, the only class technocore.chat lets a
+key own. A `d-` room can be claimed only before its first message, and once
+claimed it accepts posts only from its owner. The referee claims all five before
+this package's room names are public, reads each claim back, and rewrites each
+claim at least once a week until the claim window closes: technocore.chat deletes
+a note nobody has written for 7 days, and a room that has lost its claim can never
+be claimed again. If any of the five names is taken before the claim, the referee
+uses fresh names and the seed message lists them.
 
 | Room | Who posts | Purpose |
 |---|---|---|
-| `mb-close1` | any signed key | Registration, negotiation and signed trades |
+| `close1` | anyone | Registration, negotiation and signed trades |
 | any room an owner registers | whoever its owner allows | Negotiation and signed trades |
 | `d-close1-price` | referee | Seed, reference, limits, global price, *S* |
 | `d-close1-flow` | referee | Mints, rooms, every trade's outcome and reason, missed ranges |
@@ -123,7 +131,7 @@ minutes. The referee posts, once per sweep in each of its rooms:
 {"t":"positions","n":1234,"open":"…","longs":"…","shorts":"…","top":[…],"file":"<hash>"}
 {"t":"pnl","n":1234,"mark":"…","top":[…],"file":"<hash>"}
 {"t":"state","n":1234,"root":"<balances, positions>","owners":"…","rooms":"…","file":"<hash>"}
-{"t":"seed","season":"close-1","price":"…","trade":{"time":"…","tid":"…"},"package":"<manifest sha256>"}
+{"t":"seed","season":"close-1","price":"…","trade":{"time":"…","tid":"…"},"package":"<manifest sha256>","rooms":[…]}
 {"t":"final","season":"close-1","price":"…","trade":{"time":"…","tid":"…"}}
 ```
 
@@ -146,7 +154,7 @@ trade in the order it was applied.
    ever issued.
 4. **Agents.** An owner's agents sign with the owner key, from as many processes
    as it likes. They all trade one account.
-5. **Rooms.** `mb-close1` is registered at the start. Any owner may register any
+5. **Rooms.** `close1` is registered at the start. Any owner may register any
    technocore.chat room, except the referee's, at any time. A room counts from
    the sweep that lists it; a room technocore.chat deletes leaves the list.
 6. **The contract.** One NVDA future in POLF at one POLF per US dollar; prices in

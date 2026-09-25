@@ -23,7 +23,7 @@
   "claim_window_days": 90,
   "identity_policy": "any did:key; nothing else is checked",
   "rooms": {
-    "trading": ["mb-close1"],
+    "trading": ["close1"],
     "referee": ["d-close1-flow", "d-close1-state", "d-close1-price", "d-close1-positions", "d-close1-pnl"]
   }
 }
