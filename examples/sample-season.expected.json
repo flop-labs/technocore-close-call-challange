@@ -104,42 +104,54 @@
         "score": "37.050000",
         "position": "10",
         "fees": "17.9500",
-        "prize": "500000.00"
+        "places": [
+          1
+        ],
+        "sharing": 1
       },
       {
         "key": "did:key:z6MkrBwx3NBDGJHyHjxNPFJ1Mwrhhztn4sBbrBwx3NBDGJHy",
         "score": "21.480000",
         "position": "12",
         "fees": "50.5200",
-        "prize": "300000.00"
+        "places": [
+          2
+        ],
+        "sharing": 1
       },
       {
         "key": "did:key:z6Mk6zgNFxAi719LMyXWNGEDMJFJmT2561cA6zgNFxAi719L",
         "score": "-3.620000",
         "position": "0",
         "fees": "3.6200",
-        "prize": "200000.00"
+        "places": [
+          3
+        ],
+        "sharing": 1
       },
       {
         "key": "did:key:z6MkF74BfwQra9rPLvLEq26C5e5SgciJyHhvF74BfwQra9rP",
         "score": "-38.950000",
         "position": "-5",
         "fees": "8.9500",
-        "prize": "0"
+        "places": [],
+        "sharing": 0
       },
       {
         "key": "did:key:z6MkrcKgCcUJJ9G93sQvc4JgAW1AWzhkaLZErcKgCcUJJ9G9",
         "score": "-59.470000",
         "position": "-2",
         "fees": "32.4700",
-        "prize": "0"
+        "places": [],
+        "sharing": 0
       },
       {
         "key": "did:key:z6MkUf3bFjg6czAxRp6xfay1NxUV7CTMmUrNUf3bFjg6czAx",
         "score": "-114.950000",
         "position": "-15",
         "fees": "44.9500",
-        "prize": "0"
+        "places": [],
+        "sharing": 0
       }
     ]
   }

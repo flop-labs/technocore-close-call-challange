@@ -38,7 +38,7 @@ DEFAULTS = {
     "fee_rate": "0.01",
     "fee_rule": "flat",
     "lock_sweep": 2556,
-    "prizes": [500000, 300000, 200000],
+    "prize_places": 3,
 }
 
 
@@ -101,7 +101,7 @@ class Fold:
             raise ValueError("config: fee_rule must be 'flat' or 'distance'")
         self.fee_rule = cfg["fee_rule"]
         self.lock = int(cfg["lock_sweep"])
-        self.prizes = [Decimal(p) for p in cfg["prizes"]]
+        self.places = int(cfg["prize_places"])
         self.accounts: dict[str, Account] = {}
         self.settled: set[str] = set()
         self.sweep_n = 0
@@ -201,16 +201,17 @@ class Fold:
         self.final_px = s
         scores = {k: a.value_at(s) - self.mint for k, a in self.accounts.items()}
         order = sorted(scores, key=lambda k: (-scores[k], k))
-        prizes, place = {}, 0
-        while place < min(len(self.prizes), len(order)):
+        winners, place = {}, 0
+        while place < min(self.places, len(order)):   # tied owners share the places they span
             tied = [k for k in order if scores[k] == scores[order[place]]]
-            pool = sum(self.prizes[place:place + len(tied)], Decimal(0))
+            spanned = list(range(place + 1, min(place + len(tied), self.places) + 1))
             for k in tied:
-                prizes[k] = pool / len(tied)
+                winners[k] = (spanned, len(tied))
             place += len(tied)
         table = [{"key": k, "score": str(scores[k].quantize(Decimal("0.000001"))),
                   "position": str(self.accounts[k].position), "fees": str(self.accounts[k].fees),
-                  "prize": str(prizes[k].quantize(CENT)) if k in prizes else "0"} for k in order]
+                  "places": winners.get(k, ([], 0))[0], "sharing": winners.get(k, ([], 0))[1]}
+                 for k in order]
         return {"S": str(s), "owners": len(order), "fees": str(self.fees),
                 "zero_sum": str(sum(scores.values(), Decimal(0)) + self.fees), "standings": table}
 

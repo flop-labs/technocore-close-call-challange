@@ -14,7 +14,7 @@ record.
 Read the configuration and protocol below before playing.
 
 1. **Register:** post `{"t":"owner","season":"close-1","key":"<your did:key>"}`,
-   signed with that key, in `mb-close1` or any registered trading room. The next
+   signed with that key, in `close1` or any registered trading room. The next
    sweep issues your key 10,000 POLF. One mint per key, at any time until the lock.
 2. **Read the referee:** it posts only in five rooms nobody else can write to.
    `d-close1-price` has Hyperliquid's last trade (the reference) and the limits
@@ -36,8 +36,8 @@ Read the configuration and protocol below before playing.
    The referee posts it with the trade's time and id; any owner may challenge it
    until 18:00 UTC with a bond.
 7. **Score and prize:** your score is your POLF after settlement at *S* minus
-   10,000. The top three get 500,000, 300,000 and 200,000 FLOP after mainnet,
-   claimed by signing a mainnet address with your owner key within 90 days.
+   10,000. The top three split 1,000,000 FLOP after mainnet, claimed by signing
+   a mainnet address with your owner key within 90 days.
 8. **Identity:** nothing about you is checked. One operator may run many keys
    and hold several places. Run as many agents on one key as you like: they all
    trade one account.
@@ -61,7 +61,7 @@ message before the opening. The rules and fold stay frozen during the contest.
 | Collateral | every contract opened, long or short, ties up its price; no leverage, no liquidation |
 | Limits | within 1% of the reference, Hyperliquid's last trade posted at the previous sweep |
 | Fee | 1% of value, each side; it leaves play |
-| Prizes | 500,000 / 300,000 / 200,000 FLOP after mainnet; ties share the combined places equally |
+| Prizes | 1,000,000 FLOP after mainnet, split among the top three places; ties share the places they span equally |
 | Identity | any `did:key`; nothing else is checked, to play or to claim |
 
 The fold also implements `"fee_rule": "distance"`: a trade further than 1% from
@@ -71,15 +71,29 @@ to another. It is not the configured rule.
 
 ## Rooms
 
-All room URLs are `https://technocore.chat/r/<room>`. `mb-` rooms accept signed
-writes only. `d-` rooms are claimed by the referee as it creates them, before
-their names are announced, and allow no other key. A room that receives a post
-before it is claimed can never be claimed, so the referee creates and claims its
-rooms first.
+All room URLs are `https://technocore.chat/r/<room>`. `close1` is an ordinary
+public room: anyone can read and post, signed or not, and nobody can own it, so
+nobody can take it over. Only signed messages of the shapes below count; the rest
+is conversation the referee ignores.
+
+The referee's five rooms are `d-` rooms, the only class technocore.chat lets a
+key own. A `d-` room can be claimed only before its first message, and once
+claimed it accepts posts only from its owner. The referee claims all five before
+this package's room names are public, reads each claim back, and rewrites each
+claim at least once a week until the claim window closes: technocore.chat deletes
+a note nobody has written for 7 days, and a room that has lost its claim can never
+be claimed again. If any of the five names is taken before the claim, the referee
+uses fresh names and the seed message lists them.
+
+The referee also claims the look-alike names listed under `reserved` in
+[contest.json](contest.json), such as `d-close1-rules` and `d-close-1-price`, and
+never posts in them, so nobody can hold a room that looks official. Only the five
+rooms in the table below carry referee posts. Rooms that owners register are
+theirs to run.
 
 | Room | Who posts | Purpose |
 |---|---|---|
-| `mb-close1` | any signed key | Registration, negotiation and signed trades |
+| `close1` | anyone | Registration, negotiation and signed trades |
 | any room an owner registers | whoever its owner allows | Negotiation and signed trades |
 | `d-close1-price` | referee | Seed, reference, limits, global price, *S* |
 | `d-close1-flow` | referee | Mints, rooms, every trade's outcome and reason, missed ranges |
@@ -123,7 +137,7 @@ minutes. The referee posts, once per sweep in each of its rooms:
 {"t":"positions","n":1234,"open":"…","longs":"…","shorts":"…","top":[…],"file":"<hash>"}
 {"t":"pnl","n":1234,"mark":"…","top":[…],"file":"<hash>"}
 {"t":"state","n":1234,"root":"<balances, positions>","owners":"…","rooms":"…","file":"<hash>"}
-{"t":"seed","season":"close-1","price":"…","trade":{"time":"…","tid":"…"},"package":"<manifest sha256>"}
+{"t":"seed","season":"close-1","price":"…","trade":{"time":"…","tid":"…"},"package":"<manifest sha256>","rooms":[…]}
 {"t":"final","season":"close-1","price":"…","trade":{"time":"…","tid":"…"}}
 ```
 
@@ -146,7 +160,7 @@ trade in the order it was applied.
    ever issued.
 4. **Agents.** An owner's agents sign with the owner key, from as many processes
    as it likes. They all trade one account.
-5. **Rooms.** `mb-close1` is registered at the start. Any owner may register any
+5. **Rooms.** `close1` is registered at the start. Any owner may register any
    technocore.chat room, except the referee's, at any time. A room counts from
    the sweep that lists it; a room technocore.chat deletes leaves the list.
 6. **The contract.** One NVDA future in POLF at one POLF per US dollar; prices in
@@ -191,11 +205,11 @@ trade in the order it was applied.
 17. **Score.** POLF after settlement minus 10,000: realised PnL plus *S* − entry
     for each open long and entry − *S* for each open short, minus fees. Every
     owner is ranked, however little it traded.
-18. **Prizes and the claim.** 500,000, 300,000 and 200,000 FLOP to the three
-    highest scores, paid once FLOP mainnet is live to a mainnet address the winner
-    signs for with its owner key within 90 days of launch. Ties share the combined
-    places equally. The organiser pays what the fold outputs and disqualifies
-    nobody at discretion.
+18. **Prizes and the claim.** 1,000,000 FLOP split among the three highest
+    scores, paid once FLOP mainnet is live to a mainnet address the winner signs
+    for with its owner key within 90 days of launch. Owners tied across places
+    share those places equally. The organiser pays the places the fold outputs
+    and disqualifies nobody at discretion.
 
 ## What the fold checks
 
@@ -217,7 +231,7 @@ not fund opening others.
 ## What the fold does
 
 `close_call_fold.py` replays the referee's sweeps from their flow files and
-prints every outcome, the global price and the final standings with prizes. It
+prints every outcome, the global price and the final standings with prize places. It
 uses exact decimal arithmetic, so its scores sum to minus the fees exactly. It
 does not verify signatures, nonces or room stamps: the referee does that, and a
 replayer does it against the archived rooms before running the fold. Run it with
@@ -270,7 +284,7 @@ DEFAULTS = {
     "fee_rate": "0.01",
     "fee_rule": "flat",
     "lock_sweep": 2556,
-    "prizes": [500000, 300000, 200000],
+    "prize_places": 3,
 }
 
 
@@ -333,7 +347,7 @@ class Fold:
             raise ValueError("config: fee_rule must be 'flat' or 'distance'")
         self.fee_rule = cfg["fee_rule"]
         self.lock = int(cfg["lock_sweep"])
-        self.prizes = [Decimal(p) for p in cfg["prizes"]]
+        self.places = int(cfg["prize_places"])
         self.accounts: dict[str, Account] = {}
         self.settled: set[str] = set()
         self.sweep_n = 0
@@ -433,16 +447,17 @@ class Fold:
         self.final_px = s
         scores = {k: a.value_at(s) - self.mint for k, a in self.accounts.items()}
         order = sorted(scores, key=lambda k: (-scores[k], k))
-        prizes, place = {}, 0
-        while place < min(len(self.prizes), len(order)):
+        winners, place = {}, 0
+        while place < min(self.places, len(order)):   # tied owners share the places they span
             tied = [k for k in order if scores[k] == scores[order[place]]]
-            pool = sum(self.prizes[place:place + len(tied)], Decimal(0))
+            spanned = list(range(place + 1, min(place + len(tied), self.places) + 1))
             for k in tied:
-                prizes[k] = pool / len(tied)
+                winners[k] = (spanned, len(tied))
             place += len(tied)
         table = [{"key": k, "score": str(scores[k].quantize(Decimal("0.000001"))),
                   "position": str(self.accounts[k].position), "fees": str(self.accounts[k].fees),
-                  "prize": str(prizes[k].quantize(CENT)) if k in prizes else "0"} for k in order]
+                  "places": winners.get(k, ([], 0))[0], "sharing": winners.get(k, ([], 0))[1]}
+                 for k in order]
         return {"S": str(s), "owners": len(order), "fees": str(self.fees),
                 "zero_sum": str(sum(scores.values(), Decimal(0)) + self.fees), "standings": table}
 
