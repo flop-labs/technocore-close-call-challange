@@ -530,6 +530,9 @@ SUITE = {
         "harvest": dict(name="harvest", keys=81, qty=10.0, start=12),
         "farm10": dict(name="farm", keys=10),
         "farm50": dict(name="farm", keys=50),
+        "absurd": dict(name="absurd", keys=11, start=12),
+        "sniper": dict(name="sniper", keys=1),
+        "bracket16": dict(name="bracket", keys=16, rounds=4),
     },
 }
 ROOM = dict(variant="vwap", band_w=0.01, dev_fee=False)     # a 1% band on our own last price, flat fee
@@ -557,7 +560,7 @@ def jobs():
         for s in range(20):
             yield ("scenarios", name), s, dict(n=100, scenario=x)
     for label, kw in WINDOWS.items():
-        for nm in ("base", "wash", "walkfunnel", "harvest", "farm10"):
+        for nm in ("base", "wash", "walkfunnel", "harvest", "farm10", "absurd", "sniper", "bracket16"):
             for s in range(20):
                 yield ("windows", label, nm), s, dict(n=100, scenario=sc.get(nm), **kw)
     walk = dict(sc["walkfunnel"], aware=True)
