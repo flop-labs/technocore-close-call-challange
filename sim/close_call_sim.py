@@ -1,24 +1,27 @@
 """Close Call rules check: an agent-based simulation of the draft rules, at several scales, with gaming scenarios.
 
-Rules simulated (the proposed rules are the defaults):
+Rules simulated (the configured rules are the defaults):
 - one NVDA future in POLF, 1 POLF per $; 10,000 POLF per owner key; a did:key is a player (no human checks)
 - no book: a maker signs an offer (id, side, qty, price, last sweep); a taker countersigns; either posts it
 - every 5-minute sweep the referee applies countersigned trades in stamp order; each settles in full or is
   void: id already settled, expired, price outside the window, or either side short of funds
-- limit up/down: a trade must be within 2% of the reference, Hyperliquid's last price posted at the previous
-  sweep (variant "hl", band_w=0.02); nothing is ever reset to that price
-- fee_mode: "flat" 1% a side; "max" 1% or the trade's price gap to the reference, whichever is more (the
-  default, also dev_fee=True); "plus" 1% plus the gap; "beyond:x" 1% within x of the reference, the gap beyond.
-  Otherwise: a fee of 1% of value on each side, or the trade's distance from the reference if that is larger,
-  so a discount handed across the window is paid back as fee; every contract opened, long or short, ties up
+- limit up/down: a trade must be within 5% of the reference, Hyperliquid's last price posted at the previous
+  sweep (variant "hl", band_w=0.05); nothing is ever reset to that price
+- fee: 1% of value on each side; the side that got a better price than Hyperliquid's price at the sweep's
+  close pays that gap back instead, if it is more (fee_mode "claw_close"), so a discount handed across the
+  window, or a price a jump left behind, is paid back as fee; every contract opened, long or short, ties up
   its price; no margin calls
 - global price after a sweep: volume-weighted price of its trades, unchanged if nothing settled; it only marks
   the live board
 - score: POLF after settlement at S (Hyperliquid, one hour after the lock) minus 10,000
-- 1,000,000 FLOP split among the three highest scores; no liveness rule. The suite counts prize
-  places won, not FLOP, since the split between places is not part of the rules
+- 1,000,000 FLOP split among the three highest scores; no liveness rule. The suite counts prize places won,
+  not FLOP, since the split between places is not part of the rules
 
 Alternatives the suite compares:
+- fee_mode: "flat" (fee on each side), "max" (1% or the distance from the reference), "plus" (1% plus the
+  distance), "beyond:x" (flat inside x, the distance outside), "claw" (only the side that got a better price
+  than the reference pays the gap back, at least the flat fee; the other side pays the flat fee), "claw_close"
+  (the same, measured against Hyperliquid's price at the sweep's close instead of the previous reference)
 - variant "vwap": the band is measured from our own last global price instead (band_w, flat fee)
 - limit: a window around Hyperliquid on top of the "vwap" band
 - max_move (speed limit), guard (snap to Hyperliquid), protect / prorata (best price first, shared fills);
@@ -41,15 +44,15 @@ PLACES = 3
 EPS = 1e-9
 
 
-def hl_path(rng):
+def hl_path(rng, vol=1.0, n_jumps=2, jump=(0.03, 0.06)):
     n = SWEEPS + AFTER
     hours = np.arange(1, n + 1) * 5 / 60
     weekend = ((hours > 9) & (hours <= 58)) | ((hours > 177) & (hours <= 226))
-    r = rng.normal(0, np.where(weekend, 0.012, 0.03) / math.sqrt(288))
+    r = rng.normal(0, vol * np.where(weekend, 0.012, 0.03) / math.sqrt(288))
     jumps = []
-    for _ in range(2):
+    for _ in range(n_jumps):
         j = int(rng.integers(24, SWEEPS - 24))
-        size = float(rng.choice([-1, 1]) * rng.uniform(0.03, 0.06))
+        size = float(rng.choice([-1, 1]) * rng.uniform(*jump))
         r[j] += size
         jumps.append(j)
     return SEED * np.exp(np.cumsum(r)), jumps
@@ -93,22 +96,25 @@ def r2(x):
     return math.floor(x * 100 + 1e-6) / 100
 
 
-DEFAULT = "hl"   # proposed rule: limit up/down around Hyperliquid's last price; the market sets its own price inside it
+DEFAULT = "hl"   # the configured rule: limit up/down around Hyperliquid's last price; the market sets its own price inside it
 
 
-def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, band_w=0.02, max_move=None,
-        guard=None, prorata=False, room_price=False, protect=False, limit=None, dev_fee=True, fee_mode=None):
+def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, band_w=0.05, max_move=None,
+        guard=None, prorata=False, room_price=False, protect=False, limit=None, dev_fee=True, fee_mode=None,
+        vol=1.0, n_jumps=2, jump=(0.03, 0.06), live=False, life=6, sloppy=0.0):
     global FEE, BAND
     FEE, BAND = fee, band_w
     edge = fee + 0.002          # trackers need the fee plus a margin
     rng = np.random.default_rng(seed)
     pr = random.Random(seed * 7919 + n)
-    h, jumps = hl_path(rng)
+    h, jumps = hl_path(rng, vol, n_jumps, jump)
     S = float(h[-1])
     accts = []
     n_track, n_noise = int(n * 0.4), int(n * 0.4)
     n_bet = n - n_track - n_noise
-    for kind, m in (("tracker", n_track), ("noise", n_noise), ("bettor", n_bet)):
+    n_sloppy = int(n * sloppy)          # agents that sometimes misprice their own offers, taken from the noise traders
+    n_noise -= n_sloppy
+    for kind, m in (("tracker", n_track), ("noise", n_noise), ("bettor", n_bet), ("sloppy", n_sloppy)):
         for _ in range(m):
             a = Acct(len(accts), kind)
             if kind == "bettor":
@@ -131,7 +137,7 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
     track_err, dev = [], []
 
     band = [0.0, 0.0]          # this sweep's band in whole cents, inclusive
-    mode = fee_mode or ("max" if dev_fee else "flat")
+    mode = fee_mode or ("claw_close" if dev_fee else "flat")
 
     def fee_rate(px, ref_px):
         """Fee as a share of the trade's value. The distance is the absolute price gap to the reference,
@@ -144,6 +150,16 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
         if mode.startswith("beyond:"):
             return FEE if abs(px / ref_px - 1) <= float(mode.split(":")[1]) else dist
         return None
+
+    def side_rates(px, ref_px, maker_side):
+        """(maker's, taker's) fee rate. Under "claw" only the side that got a better price than the
+        reference pays the gap back (at least the flat fee); the other side pays the flat fee."""
+        if mode not in ("claw", "claw_close"):
+            fr = fee_rate(px, ref_px)
+            return fr, fr
+        gain = (ref_px - px) / px          # > 0: the buyer paid less than the reference
+        buyer_rate, seller_rate = max(FEE, gain), max(FEE, -gain)
+        return (buyer_rate, seller_rate) if maker_side > 0 else (seller_rate, buyer_rate)
 
     captured = {}              # value each gaming key captured against Hyperliquid's price at the time
     settled_per_sweep = []
@@ -211,7 +227,7 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
             if kind == "tracker":
                 if pr.random() > 1 / 6:
                     continue
-                f = hp * (1 + pr.gauss(0, 0.002))
+                f = (float(h[k]) if live else hp) * (1 + pr.gauss(0, 0.002))   # live: reads Hyperliquid now
                 lim = min(25, pos_cap or 25)
                 room_b, room_s = lim - a.q, lim + a.q
                 for o in asks:
@@ -226,9 +242,9 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                         take(a, o); room_s -= o["qty"]; room_b += o["qty"]
                 bid, ask = min(f * (1 - edge), hi), max(f * (1 + edge), lo)
                 if bid >= lo and a.q < lim:
-                    post(a, 1, 2, bid, k + 6, k)
+                    post(a, 1, 2, bid, k + life, k)
                 if ask <= hi and a.q > -lim:
-                    post(a, -1, 2, ask, k + 6, k)
+                    post(a, -1, 2, ask, k + life, k)
             elif kind == "noise":
                 if pr.random() > 1 / 72:
                     continue
@@ -239,6 +255,17 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                     take(a, best)
                 else:
                     post(a, side, pr.uniform(0.5, 3), ref * (1 + 0.005 * side), k + 12, k)
+            elif kind == "sloppy":          # like noise, but 3 in 10 of its offers are mispriced 2-10% against itself
+                if pr.random() > 1 / 72:
+                    continue
+                side = pr.choice([-1, 1])
+                book = asks if side > 0 else bids
+                best = next((o for o in book if o["maker"] is not a), None)
+                if best:
+                    take(a, best)
+                else:
+                    miss = pr.uniform(0.02, 0.10) if pr.random() < 0.3 else 0.005
+                    post(a, side, pr.uniform(0.5, 3), ref * (1 + miss * side), k + 12, k)
             elif kind == "bettor":
                 if k < 24:
                     side = a.dir
@@ -344,6 +371,21 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                     gain = side * (now - o["px"]) / o["px"]
                     if gain > cost and abs(sn.q + side * o["qty"]) <= 50:
                         take(sn, o)
+        if name == "jumpfunnel":       # free keys hand the favoured key a jump it has just seen, at the stale reference
+            main, feeders = group[0], group[1:]
+            jf = bracket.setdefault("jf", dict(open=None, i=0))
+            if jf["open"] is not None:          # the sweep after: sell back at the new reference to another free key
+                side, q = jf["open"]
+                fdr = feeders[jf["i"] % len(feeders)]; jf["i"] += 1
+                direct(trades, k, fdr, main, side, q, ref)
+                jf["open"] = None
+            elif abs(float(h[k]) / hp - 1) > 0.02:
+                side = 1 if h[k] > hp else -1
+                fdr = feeders[jf["i"] % len(feeders)]; jf["i"] += 1
+                q = r2(0.9 * min(main.R, fdr.R) / (hp * (1 + FEE + 0.02)))
+                if q >= 0.1:
+                    direct(trades, k, fdr, main, -side, q, hp)
+                    jf["open"] = (side, q)
         if name == "harvest" and k >= sc.get("start", 12):
             main, feeders = group[0], group[1:]
             i = (k // 2) % (len(feeders) // 2)      # one pair of free keys for two sweeps, so their positions net out
@@ -429,15 +471,17 @@ def run(seed, n=100, variant=DEFAULT, scenario=None, pos_cap=None, fee=0.01, ban
                 continue
             if pos_cap and (abs(mk.q + o["side"] * o["qty"]) > pos_cap + EPS or abs(taker.q - o["side"] * o["qty"]) > pos_cap + EPS):
                 stats["void_cap"] += 1; continue
-            fr = fee_rate(o["px"], hp)
-            if mk.R + EPS < mk.need(o["side"], o["qty"], o["px"], fr) or taker.R + EPS < taker.need(-o["side"], o["qty"], o["px"], fr):
+            # "claw_close" measures the clawback against Hyperliquid's price at this sweep's close, which the
+            # referee reads before it settles; the limits stay on the reference posted at the previous sweep
+            frm, frt = side_rates(o["px"], float(h[k]) if mode == "claw_close" else hp, o["side"])
+            if mk.R + EPS < mk.need(o["side"], o["qty"], o["px"], frm) or taker.R + EPS < taker.need(-o["side"], o["qty"], o["px"], frt):
                 stats["void_funds"] += 1
                 if taker.group == "honest":
                     honest_void_funds += 1
                 continue
-            mk.apply(o["side"], o["qty"], o["px"], fr)
-            taker.apply(-o["side"], o["qty"], o["px"], fr)
-            for acc, sd in ((mk, o["side"]), (taker, -o["side"])):
+            mk.apply(o["side"], o["qty"], o["px"], frm)
+            taker.apply(-o["side"], o["qty"], o["px"], frt)
+            for acc, sd, fr in ((mk, o["side"], frm), (taker, -o["side"], frt)):
                 if acc.group != "honest":
                     captured[acc.id] = captured.get(acc.id, 0.0) + sd * o["qty"] * (float(h[k]) - o["px"]) - (FEE if fr is None else fr) * o["qty"] * o["px"]
             settled_ids.add(o["id"])
@@ -539,10 +583,12 @@ ROOM = dict(variant="vwap", band_w=0.01, dev_fee=False)     # a 1% band on our o
 WINDOWS = {
     "band 1% on our last price, fee 1%": ROOM,
     "window 1% of Hyperliquid, fee 1%": dict(band_w=0.01, dev_fee=False),
-    "window 2%, fee 1%": dict(dev_fee=False),
-    "window 2%, fee 2%": dict(dev_fee=False, fee=0.02),
-    "window 2%, fee 1% or distance": dict(),
-    "window 5%, fee 1% or distance": dict(band_w=0.05),
+    "window 2%, fee 1%": dict(band_w=0.02, dev_fee=False),
+    "window 2%, fee 2%": dict(band_w=0.02, dev_fee=False, fee=0.02),
+    "window 2%, fee 1% or distance": dict(band_w=0.02, fee_mode="max"),
+    "window 5%, fee 1% or distance": dict(band_w=0.05, fee_mode="max"),
+    "window 5%, clawback on the previous reference": dict(band_w=0.05, fee_mode="claw"),
+    "window 5%, clawback on the closing price (the rules)": dict(),
 }
 FIXES = {    # ways to stop the walk if the band stays on our own last price
     "speed 3%/h": dict(ROOM, max_move=0.03 / 12),

@@ -27,33 +27,33 @@
       "url": "NOTICE"
     },
     "README.md": {
-      "bytes": 3421,
-      "sha256": "b4fd6d6baca912b003950a8cb5b7071e6d45d0b6b1b35549682009d95c10df84",
+      "bytes": 3511,
+      "sha256": "ab4a24d0269fbaad3685ab40ed7d6100c3f71d5592449664b377fcfb328b0e30",
       "url": "README.md"
     },
     "close-call-game.md": {
-      "bytes": 26115,
-      "sha256": "42e7c40c00cda986e41b5e5a2dd88438374778be5953d20f89b11f3b21e11ed2",
+      "bytes": 27266,
+      "sha256": "76e566cae330ba7d36a0a74edf9cb9b38a56eda8dd04856a16a11514988a3b3c",
       "url": "close-call-game.md"
     },
     "close_call_fold.py": {
-      "bytes": 10969,
-      "sha256": "936d68340c6441dd4c8765c9f101f38fa760bfb39c363af52fa013db5f232d58",
+      "bytes": 11754,
+      "sha256": "19e13cd15dd4e9078b608a94776947bb52bba86367446d0a405c0b05c85173d4",
       "url": "close_call_fold.py"
     },
     "contest.json": {
-      "bytes": 1362,
-      "sha256": "1cc23fb7495762a919f6f280c10e961db65d5dac18bb41fc74503efd5686dedb",
+      "bytes": 1366,
+      "sha256": "1ddd9d7dbf21ed8a583c478670e852d181d461fe149f2e98e814f6dbbdfe2d59",
       "url": "contest.json"
     },
     "examples/sample-season.expected.json": {
-      "bytes": 3573,
-      "sha256": "495e5318fd1aff9caf09ea876e44257ba59c161fa22931588eb5f9c84446504e",
+      "bytes": 3836,
+      "sha256": "cb8eccda648f56cad0337d17dbcc0cf4ab1c9e3af38bec830506f759b038a7d8",
       "url": "examples/sample-season.expected.json"
     },
     "examples/sample-season.jsonl": {
-      "bytes": 3337,
-      "sha256": "b6a9fa2082e79da7a8624c93823b4bd23152f547a5d05d8ad805aed7b051f6e6",
+      "bytes": 3388,
+      "sha256": "54c830076d3ee6da71a0093f626be20d97be3fd3784c362b6d4d7e5070911b7b",
       "url": "examples/sample-season.jsonl"
     },
     "scripts/build.py": {
@@ -67,8 +67,8 @@
       "url": "scripts/verify.py"
     },
     "tests/test_fold.py": {
-      "bytes": 5350,
-      "sha256": "c133848abc4c5324caee3354e581fec4b0f425adb8922e2dc695dab590990f8e",
+      "bytes": 7475,
+      "sha256": "8771116f3a23eea46ca2a5dae2424f3b6ab78f9979649eb63ea83b88b5560d2a",
       "url": "tests/test_fold.py"
     },
     "tests/test_package.py": {

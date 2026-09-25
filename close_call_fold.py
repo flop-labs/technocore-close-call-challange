@@ -3,8 +3,11 @@
 Input is JSON Lines, one event per line, in the order the referee applied them:
 
   {"t": "seed", "px": "180.00"}
-  {"t": "sweep", "n": 1, "ref": "180.00", "owners": [did, ...], "trades": [trade, ...]}
+  {"t": "sweep", "n": 1, "ref": "180.00", "close": "180.40", "owners": [did, ...], "trades": [trade, ...]}
   {"t": "final", "px": "189.00"}
+
+`ref` is the reference posted at the previous sweep, which sets the limits. `close` is Hyperliquid's
+last trade before this sweep's close, which the referee posts at this sweep: it prices the clawback.
 
 A trade is the agreed terms plus the countersigning key, in the order the rooms stamped them:
 
@@ -34,9 +37,9 @@ CENT = Decimal("0.01")
 DEFAULTS = {
     "mint": "10000",
     "min_qty": "0.1",
-    "limit_window": "0.01",
+    "limit_window": "0.05",
     "fee_rate": "0.01",
-    "fee_rule": "flat",
+    "fee_rule": "clawback",
     "lock_sweep": 2556,
     "prize_places": 3,
 }
@@ -97,9 +100,8 @@ class Fold:
         self.min_qty = Decimal(cfg["min_qty"])
         self.window = Decimal(cfg["limit_window"])
         self.fee_rate = Decimal(cfg["fee_rate"])
-        if cfg["fee_rule"] not in ("flat", "distance"):
-            raise ValueError("config: fee_rule must be 'flat' or 'distance'")
-        self.fee_rule = cfg["fee_rule"]
+        if cfg["fee_rule"] != "clawback":
+            raise ValueError("config: fee_rule must be 'clawback'")
         self.lock = int(cfg["lock_sweep"])
         self.places = int(cfg["prize_places"])
         self.accounts: dict[str, Account] = {}
@@ -109,11 +111,13 @@ class Fold:
         self.final_px: Decimal | None = None
         self.fees = Decimal(0)
 
-    def fee(self, qty: Decimal, px: Decimal, ref: Decimal) -> Decimal:
-        flat = self.fee_rate * qty * px
-        if self.fee_rule == "distance":
-            return max(flat, abs(px - ref) * qty)   # a trade far from the reference pays back its distance
-        return flat
+    def side_fees(self, side: int, qty: Decimal, px: Decimal, close: Decimal) -> tuple[Decimal, Decimal]:
+        """(maker's fee, taker's fee) for a maker on `side`. Each pays the fee rate on the trade's value;
+        the one that got a better price than the sweep's close pays that gap back instead, if it is more."""
+        base = self.fee_rate * qty * px
+        gap = (close - px) * qty                  # above zero: the buyer paid less than the close
+        buyer, seller = max(base, gap), max(base, -gap)
+        return (buyer, seller) if side > 0 else (seller, buyer)
 
     def seed(self, px: str) -> None:
         value = amount(px)
@@ -121,7 +125,7 @@ class Fold:
             raise ValueError("seed: expected one opening price with at most two decimals")
         self.global_px = value
 
-    def check(self, trade: dict, n: int, ref: Decimal):
+    def check(self, trade: dict, n: int, ref: Decimal, close: Decimal):
         """The void reason for one trade, or None if it settles."""
         if not isinstance(trade, dict):
             return "shape"
@@ -146,21 +150,22 @@ class Fold:
             return "locked"
         if abs(px - ref) > self.window * ref:
             return "limits"
-        fee = self.fee(qty, px, ref)
         side = 1 if trade["side"] == "buy" else -1
+        mk_fee, tk_fee = self.side_fees(side, qty, px, close)
         mk, tk = self.accounts[maker], self.accounts[signer]
         if mk is tk:
-            if mk.cash < 2 * fee:
+            if mk.cash < mk_fee + tk_fee:
                 return "funds"
-        elif (mk.cash < mk.opening(side, qty) * px + fee
-              or tk.cash < tk.opening(-side, qty) * px + fee):
+        elif (mk.cash < mk.opening(side, qty) * px + mk_fee
+              or tk.cash < tk.opening(-side, qty) * px + tk_fee):
             return "funds"
         return None
 
-    def sweep(self, n: int, ref: str, owners: list, trades: list) -> dict:
-        reference = amount(ref)
-        if self.global_px is None or reference is None or type(n) is not int or n <= self.sweep_n:
-            raise ValueError(f"sweep {n}: needs a seed, a reference price and an increasing sweep number")
+    def sweep(self, n: int, ref: str, close: str, owners: list, trades: list) -> dict:
+        reference, closing = amount(ref), amount(close)
+        if (self.global_px is None or reference is None or closing is None or type(n) is not int
+                or n <= self.sweep_n):
+            raise ValueError(f"sweep {n}: needs a seed, a reference and a closing price, and an increasing sweep number")
         self.sweep_n = n
         minted = []
         for key in owners:
@@ -169,29 +174,29 @@ class Fold:
                 minted.append(key)
         outcomes, volume, notional = [], Decimal(0), Decimal(0)
         for trade in trades:
-            reason = self.check(trade, n, reference)
+            reason = self.check(trade, n, reference, closing)
             tid = trade.get("id") if isinstance(trade, dict) else None
             if reason:
                 outcomes.append({"id": tid, "outcome": "void", "reason": reason})
                 continue
             qty, px = Decimal(trade["qty"]), Decimal(trade["px"])
             side = 1 if trade["side"] == "buy" else -1
-            fee = self.fee(qty, px, reference)
+            mk_fee, tk_fee = self.side_fees(side, qty, px, closing)
             mk, tk = self.accounts[trade["maker"]], self.accounts[trade["countersigner"]]
             if mk is tk:
-                mk.cash -= 2 * fee
-                mk.fees += 2 * fee
+                mk.cash -= mk_fee + tk_fee
+                mk.fees += mk_fee + tk_fee
             else:
-                mk.apply(side, qty, px, fee)
-                tk.apply(-side, qty, px, fee)
-            self.fees += 2 * fee
+                mk.apply(side, qty, px, mk_fee)
+                tk.apply(-side, qty, px, tk_fee)
+            self.fees += mk_fee + tk_fee
             self.settled.add(trade["id"])
             volume += qty
             notional += qty * px
-            outcomes.append({"id": tid, "outcome": "settled", "fee": str(fee)})
+            outcomes.append({"id": tid, "outcome": "settled", "maker_fee": str(mk_fee), "taker_fee": str(tk_fee)})
         if volume:
             self.global_px = notional / volume
-        return {"sweep": n, "reference": str(reference), "minted": minted, "trades": outcomes,
+        return {"sweep": n, "reference": str(reference), "close": str(closing), "minted": minted, "trades": outcomes,
                 "global_price": str(self.global_px.quantize(CENT))}
 
     def final(self, px: str) -> dict:
@@ -228,7 +233,8 @@ def replay(lines, config: dict | None = None) -> dict:
             if kind == "seed":
                 fold.seed(event.get("px"))
             elif kind == "sweep":
-                sweeps.append(fold.sweep(event.get("n"), event.get("ref"), event.get("owners", []), event.get("trades", [])))
+                sweeps.append(fold.sweep(event.get("n"), event.get("ref"), event.get("close"),
+                                         event.get("owners", []), event.get("trades", [])))
             elif kind == "final":
                 result = fold.final(event.get("px"))
             else:
