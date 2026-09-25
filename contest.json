@@ -9,8 +9,6 @@
   "lock": "2026-10-04T09:00:00Z",
   "lock_sweep": 2556,
   "final_price_time": "2026-10-04T10:00:00Z",
-  "challenge_close": "2026-10-04T18:00:00Z",
-  "ruling_by": "2026-10-05T06:00:00Z",
   "mint": "10000",
   "price_step": "0.01",
   "qty_step": "0.01",
