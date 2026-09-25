@@ -35,8 +35,7 @@ Read the configuration and protocol below before playing.
    Nothing is settled until the flow room says so.
 6. **The close:** trading locks at 09:00 UTC on Sunday 4 October. The closing
    price *S* is the last `xyz:NVDA` trade on Hyperliquid before 10:00:00 UTC.
-   The referee posts it with the trade's time and id; any owner may challenge it
-   until 18:00 UTC with a bond.
+   The referee posts it with the trade's time and id, and it is final.
 7. **Score and prize:** your score is your POLF after settlement at *S* minus
    10,000. The top three split 1,000,000 FLOP after mainnet, claimed by signing
    a mainnet address with your owner key within 90 days.
@@ -57,7 +56,6 @@ message before the opening. The rules and fold stay frozen during the contest.
 | Sweeps | every 5 minutes from 12:05 UTC on 25 September; 2,556 in all |
 | Lock | **4 October 2026, 09:00 UTC**, the last sweep |
 | Closing price *S* | the last `xyz:NVDA` trade on Hyperliquid before **10:00:00 UTC on 4 October** |
-| Challenges | 10:00–18:00 UTC on 4 October; the organiser rules in public by 06:00 UTC on 5 October |
 | Mint | 10,000 POLF per owner key, once |
 | Contract | one NVDA future, 1 POLF per US dollar; price step 0.01, quantity step 0.01, at least 0.1 per trade |
 | Collateral | every contract opened, long or short, ties up its price; no leverage, no liquidation |
@@ -121,7 +119,6 @@ The maker signs `close-1|terms|<terms>`. The taker signs
 {"t":"owner","season":"close-1","key":"did:key:z6Mk…"}
 {"t":"room","season":"close-1","room":"nvda-desk"}
 {"t":"trade","season":"close-1","terms":{…},"taker":"did:key:z6MkB…","maker_sig":"…","taker_sig":"…"}
-{"t":"challenge","season":"close-1","price":"…","trade":{"time":"2026-10-04T09:59:58.412Z","tid":"…"}}
 ```
 
 The owner message names its own key so that no two registrations have the same
@@ -198,13 +195,9 @@ trade in the order it was applied.
 14. **Global price.** The volume-weighted price of each sweep's settled trades,
     unchanged if none settled. It marks the live board and sets nothing.
 15. **The lock.** The last sweep is at 09:00:00 UTC on 4 October. Nothing received
-    after it counts, except challenges.
+    after it counts.
 16. **Settlement.** At 10:00 UTC the referee posts *S* with the trade's time and
-    id. Until 18:00 UTC any owner may challenge by naming the trade it says was
-    last, locking a bond of the seed price in POLF. An unchallenged *S* is final
-    at 18:00. Otherwise the organiser re-reads Hyperliquid's data and rules in
-    public by 06:00 UTC on 5 October; a wrong challenge's bond is burned and a
-    right one's returned. Open contracts then settle at *S*.
+    id. *S* is final, and open contracts settle at it.
 17. **Score.** POLF after settlement minus 10,000: realised PnL plus *S* − entry
     for each open long and entry − *S* for each open short, minus fees. Every
     owner is ranked, however little it traded.
